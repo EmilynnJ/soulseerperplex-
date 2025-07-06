@@ -5,7 +5,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import axios from 'axios';
 
 const Admin = () => {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('readers');
@@ -26,14 +26,12 @@ const Admin = () => {
   });
 
   useEffect(() => {
-    if (!isLoaded) return;
-    
-    if (!user || user.publicMetadata?.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
     fetchAdminData();
-  }, [user, isLoaded, navigate]);
+  }, [user, navigate]);
 
   const fetchAdminData = async () => {
     try {
@@ -96,7 +94,7 @@ const Admin = () => {
     }
   };
 
-  if (!isLoaded || !user || user.publicMetadata?.role !== 'admin') {
+  if (!user || user.role !== 'admin') {
     return null;
   }
 

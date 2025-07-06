@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 
 const Profile = () => {
   const { user } = useUser();
@@ -304,7 +304,7 @@ const Profile = () => {
               <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
                 <h3 className="font-playfair text-xl text-white font-semibold mb-4">Password</h3>
                 <p className="font-playfair text-gray-300 mb-4">
-                  Your password is managed by Clerk for enhanced security.
+                  Keep your account secure with a strong password.
                 </p>
                 <button className="btn-mystical">
                   Change Password

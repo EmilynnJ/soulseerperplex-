@@ -5,8 +5,11 @@ import axios from 'axios';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Messages = () => {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const navigate = useNavigate();
+  
+  console.log('[Messages] User:', user);
+  console.log('[Messages] User role:', user?.role);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -15,8 +18,6 @@ const Messages = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const fetchConversations = useCallback(async () => {
-    if (!isLoaded || !user) return;
-    
     try {
       setLoading(true);
       const response = await axios.get('/api/messages/conversations');
@@ -26,7 +27,7 @@ const Messages = () => {
     } finally {
       setLoading(false);
     }
-  }, [isLoaded, user]);
+  }, []);
 
   useEffect(() => {
     fetchConversations();
@@ -34,7 +35,9 @@ const Messages = () => {
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!activeConversationId) return;
+      if (!activeConversationId) {
+        return;
+      }
 
       try {
         setLoadingMessages(true);
@@ -51,10 +54,14 @@ const Messages = () => {
   }, [activeConversationId]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !activeConversationId) return;
+    if (!newMessage.trim() || !activeConversationId) {
+      return;
+    }
 
     const activeConversation = conversations.find(c => c.conversationId === activeConversationId);
-    if (!activeConversation) return;
+    if (!activeConversation) {
+      return;
+    }
 
     const receiverId = activeConversation.otherParticipant.id;
 
@@ -68,10 +75,10 @@ const Messages = () => {
       setNewMessage('');
 
       // Optimistically update the conversation list
-      setConversations(prev => prev.map(conv =>
-        conv.conversationId === activeConversationId
-          ? { ...conv, lastMessage: { content: newMessage.trim(), createdAt: new Date().toISOString(), isFromMe: true } }
-          : conv
+      setConversations(prev => prev.map(conversation =>
+        conversation.conversationId === activeConversationId
+          ? { ...conversation, lastMessage: { content: newMessage.trim(), createdAt: new Date().toISOString(), isFromMe: true } }
+          : conversation
       ));
 
     } catch (error) {
@@ -95,15 +102,6 @@ const Messages = () => {
       return date.toLocaleDateString();
     }
   };
-
-  if (!isLoaded) {
-    return <LoadingSpinner text="Loading..." />;
-  }
-
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
 
   return (
     <div className="min-h-screen py-8">
@@ -132,39 +130,39 @@ const Messages = () => {
             
             {loading ? <LoadingSpinner text="Loading conversations..." /> : (
               <div className="space-y-3 overflow-y-auto max-h-[600px]">
-                {conversations.map((conv) => (
+                {conversations.map((conversation) => (
                   <div
-                    key={conv.conversationId}
-                    onClick={() => setActiveConversationId(conv.conversationId)}
+                    key={conversation.conversationId}
+                    onClick={() => setActiveConversationId(conversation.conversationId)}
                     className={`p-4 rounded-lg cursor-pointer transition-all ${
-                      activeConversationId === conv.conversationId
+                      activeConversationId === conversation.conversationId
                         ? 'bg-mystical-pink bg-opacity-20 border border-mystical-pink'
                         : 'bg-gray-800 bg-opacity-50 hover:bg-gray-700'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
                       <div className="relative">
-                        <div className="text-2xl">{conv.otherParticipant.avatar || '👤'}</div>
-                        {conv.otherParticipant.isOnline && (
+                        <div className="text-2xl">{conversation.otherParticipant.avatar || '👤'}</div>
+                        {conversation.otherParticipant.isOnline && (
                           <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800"></div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <h3 className="font-playfair text-white font-semibold truncate">
-                            {conv.otherParticipant.name}
+                            {conversation.otherParticipant.name}
                           </h3>
-                          {conv.unreadCount > 0 && (
+                          {conversation.unreadCount > 0 && (
                             <span className="bg-mystical-pink text-white rounded-full px-2 py-1 text-xs">
-                              {conv.unreadCount}
+                              {conversation.unreadCount}
                             </span>
                           )}
                         </div>
                         <p className="font-playfair text-gray-300 text-sm truncate">
-                          {conv.lastMessage.isFromMe && "You: "}{conv.lastMessage.content}
+                          {conversation.lastMessage.isFromMe && "You: "}{conversation.lastMessage.content}
                         </p>
                         <p className="font-playfair text-gray-400 text-xs">
-                          {formatTime(conv.lastMessage.createdAt)}
+                          {formatTime(conversation.lastMessage.createdAt)}
                         </p>
                       </div>
                     </div>

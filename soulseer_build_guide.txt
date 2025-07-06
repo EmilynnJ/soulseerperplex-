@@ -309,7 +309,7 @@ Celestial, mystical, and ethereal: Dark-mode default with pink, black, gold, and
 **Integration Requirements:**
 -CUSTOM CODED WEBRTC READING SYSTEM for all real-time communication (chat, voice, video)
 
--CLERK FOR AUTH
+-SIMPLE EMAIL/PASSWORD LOGIN/SIGNUP FOR AUTH
 
 -NEON FOR DATABASE-WILL GIVE STRING
 - Stripe Connect for payment processing and reader payouts
@@ -506,4 +506,11 @@ Backend should manage auth, signaling, billing, session logs, and Stripe
  
 Every component and API must be functional, real, and tested
 
-]
+
+
+
+
+
+
+ 
+

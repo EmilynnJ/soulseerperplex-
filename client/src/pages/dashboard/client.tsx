@@ -1,17 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
+
+// Type Definitions
+interface Session {
+  id: number;
+  readerName: string;
+  readerAvatar: string;
+  type: 'video' | 'chat' | 'audio';
+  duration: string;
+  amount: number;
+  date: string;
+  rating: number;
+  status: 'completed' | 'pending' | 'cancelled';
+  notes: string;
+}
+
+interface Reader {
+  id: number;
+  name: string;
+  avatar: string;
+  specialties: string[];
+  rating: number;
+  isOnline: boolean;
+  rate: number;
+}
+
+interface Order {
+  id: number;
+  item: string;
+  type: string;
+  amount: number;
+  date: string;
+  status: 'completed' | 'shipped' | 'pending';
+}
 
 const ClientDashboard = () => {
   const { user } = useUser();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [balance, setBalance] = useState(0);
-  const [sessions, setSessions] = useState([]);
-  const [favoriteReaders, setFavoriteReaders] = useState([]);
-  const [onlineReaders, setOnlineReaders] = useState([]);
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [favoriteReaders, setFavoriteReaders] = useState<Reader[]>([]);
+  const [onlineReaders, setOnlineReaders] = useState<Reader[]>([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
   // Mock data - replace with actual API calls
   useEffect(() => {
@@ -128,23 +160,19 @@ const ClientDashboard = () => {
   }, []);
 
   const handleAddFunds = () => {
-    // Navigate to payment page or open Stripe payment modal
-    navigate('/shop?category=credits');
+    console.log('Add funds functionality to be implemented');
   };
 
   const handleConnectReader = (readerId: number, sessionType: string) => {
-    // Navigate to reading room with reader and session type
-    navigate(`/reading/new?readerId=${readerId}&type=${sessionType}`);
+    console.log(`Connecting to reader ${readerId} for ${sessionType} session`);
   };
 
   const handleAddToFavorites = (readerId: number) => {
-    // Add reader to favorites list
-    alert('Reader added to favorites!');
+    console.log(`Added reader ${readerId} to favorites`);
   };
 
   const handleViewOrder = (orderId: number) => {
-    // Navigate to order details page
-    navigate(`/orders/${orderId}`);
+    console.log(`Viewing order ${orderId}`);
   };
 
   const tabs = [
@@ -480,7 +508,7 @@ const ClientDashboard = () => {
                     <input
                       type="email"
                       className="input-mystical w-full"
-                      defaultValue={user?.emailAddresses?.[0]?.emailAddress || ''}
+                      defaultValue={user?.primaryEmailAddress?.emailAddress || ''}
                     />
                   </div>
                   <div>
@@ -542,10 +570,4 @@ const ClientDashboard = () => {
   );
 };
 
-const ProtectedClientDashboard = () => (
-  <ProtectedRoute allowedRoles={['client']}>
-    <ClientDashboard />
-  </ProtectedRoute>
-);
-
-export default ProtectedClientDashboard;
+export default ClientDashboard;

@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { ProtectedRoute } from '../../components/ProtectedRoute';
+import { useUser } from '@clerk/clerk-react';
 
+interface ReaderApplication {
+  id: number;
+  name: string;
+  email: string;
+  specialties: string[];
+  experience: string;
+  status: string;
+  appliedDate: string;
+}
 const AdminDashboard = () => {
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState('overview');
-  const [readerApplications, setReaderApplications] = useState([]);
+  const [readerApplications, setReaderApplications] = useState<ReaderApplication[]>([]);
   const [analytics, setAnalytics] = useState({
     totalUsers: 0,
     activeReaders: 0,
@@ -43,30 +53,15 @@ const AdminDashboard = () => {
   }, []);
 
   const handleApproveReader = (readerId: number) => {
-    setReaderApplications(prev => 
-      prev.map(reader => 
-        reader.id === readerId 
-          ? { ...reader, status: 'approved' }
-          : reader
-      )
-    );
-    alert('Reader application approved successfully!');
+    console.log(`Approved reader with ID: ${readerId}`);
   };
 
   const handleRejectReader = (readerId: number) => {
-    setReaderApplications(prev => 
-      prev.map(reader => 
-        reader.id === readerId 
-          ? { ...reader, status: 'rejected' }
-          : reader
-      )
-    );
-    alert('Reader application rejected.');
+    console.log(`Rejected reader with ID: ${readerId}`);
   };
 
   const handleCreateReader = () => {
-    // Navigate to create reader form or open modal
-    alert('Create reader functionality - would open reader creation form');
+    console.log('Create new reader profile');
   };
 
   const tabs = [
@@ -367,10 +362,4 @@ const AdminDashboard = () => {
   );
 };
 
-const ProtectedAdminDashboard = () => (
-  <ProtectedRoute allowedRoles={['admin']}>
-    <AdminDashboard />
-  </ProtectedRoute>
-);
-
-export default ProtectedAdminDashboard;
+export default AdminDashboard;

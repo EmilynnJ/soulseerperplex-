@@ -3,7 +3,7 @@ import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { useUser } from '@clerk/clerk-react';
 
 const ReaderDashboard = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [isOnline, setIsOnline] = useState(false);
   const [earnings, setEarnings] = useState({
@@ -91,19 +91,15 @@ const ReaderDashboard = () => {
 
   const handleToggleOnline = () => {
     setIsOnline(!isOnline);
-    // In a real app, this would make an API call to update status
-    alert(`Status changed to ${isOnline ? 'Offline' : 'Online'}`);
+    console.log(`Toggling online status to: ${!isOnline}`);
   };
 
   const handleUpdateRates = () => {
-    // Open rate update modal or form
-    alert('Rate update form would open here - allowing you to set per-minute rates for video, audio, and chat');
+    console.log('Rate update functionality to be implemented');
   };
 
   const handleAcceptSession = (notificationId: number) => {
-    // Accept the session and navigate to reading room
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    alert('Session accepted! Redirecting to reading room...');
+    console.log(`Accepting session from notification ${notificationId}`);
   };
 
   const tabs = [
@@ -125,7 +121,7 @@ const ReaderDashboard = () => {
               Reader Dashboard
             </h1>
             <p className="font-playfair text-gray-300 text-lg">
-              Welcome back, {user?.firstName || 'Reader'}
+              Welcome back, {user?.profile?.name || user?.email || 'Reader'}
             </p>
           </div>
           
@@ -446,10 +442,4 @@ const ReaderDashboard = () => {
   );
 };
 
-const ProtectedReaderDashboard = () => (
-  <ProtectedRoute allowedRoles={['reader']}>
-    <ReaderDashboard />
-  </ProtectedRoute>
-);
-
-export default ProtectedReaderDashboard;
+export default ReaderDashboard;

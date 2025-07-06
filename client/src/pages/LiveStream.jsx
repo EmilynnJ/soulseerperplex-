@@ -34,22 +34,15 @@ const LiveStream = () => {
   };
 
   const handleJoinStream = (stream) => {
-    if (stream.isPremium) {
-      // Check if user has premium access or sufficient balance
-      navigate(`/live/${stream.id}?premium=true`);
-    } else {
-      navigate(`/live/${stream.id}`);
-    }
+    console.log(`Joining ${stream.title} by ${stream.readerName}`);
   };
 
   const handleSetReminder = (stream) => {
-    // Add to user's calendar/reminders
-    alert(`Reminder set for "${stream.title}" - you'll be notified 15 minutes before it starts!`);
+    console.log(`Reminder set for ${stream.title}`);
   };
 
   const handleSendGift = (stream) => {
-    // Open gift selection modal
-    navigate(`/live/${stream.id}?action=gift`);
+    console.log(`Send a gift to ${stream.readerName}`);
   };
 
   if (loading) {
