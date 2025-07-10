@@ -11,8 +11,14 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: false, // Not required for Clerk users
     minlength: 6
+  },
+  clerkUserId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null values but ensures uniqueness when present
+    default: null
   },
   role: {
     type: String,
@@ -171,10 +177,14 @@ userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ 'readerSettings.isOnline': 1 });
 userSchema.index({ isActive: 1 });
+userSchema.index({ clerkUserId: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  // Skip password hashing for Clerk users or if password isn't modified
+  if (!this.isModified('password') || !this.password) {
+    return next();
+  }
   
   try {
     const salt = await bcrypt.genSalt(12);
@@ -211,7 +221,9 @@ userSchema.methods.getPublicProfile = function() {
 
 // Virtual for reader display info
 userSchema.virtual('readerInfo').get(function() {
-  if (this.role !== 'reader') return null;
+  if (this.role !== 'reader') {
+    return null;
+  }
   
   return {
     id: this._id,

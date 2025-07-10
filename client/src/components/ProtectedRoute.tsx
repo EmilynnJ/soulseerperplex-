@@ -1,28 +1,43 @@
 import React from 'react';
-import { useUser, RedirectToSignIn } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
+import { Navigate, useLocation } from 'react-router-dom';
+import LoadingSpinner from './LoadingSpinner';
+
+type UserRole = 'admin' | 'reader' | 'client';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: string[];
+  allowedRoles: UserRole[];
 }
 
 export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { isSignedIn, isLoaded, user } = useUser();
+  const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const location = useLocation();
 
+  // Show loading spinner while Clerk is loading
   if (!isLoaded) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner />;
   }
 
+  // Redirect to login if not signed in
   if (!isSignedIn) {
-    return <RedirectToSignIn />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && user) {
-    const userRole = user.publicMetadata?.role;
-    if (!userRole || !allowedRoles.includes(userRole)) {
-      return <div>Unauthorized</div>;
-    }
+  // Get user role from Clerk's publicMetadata
+  const userRole = user?.publicMetadata?.role as UserRole;
+  
+  // Check if user has the required role
+  if (userRole && allowedRoles.includes(userRole)) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  // If no role is set, default to client for backwards compatibility
+  if (!userRole && allowedRoles.includes('client')) {
+    return <>{children}</>;
+  }
+
+  // User doesn't have the required role
+  return <Navigate to="/unauthorized" replace />;
 };

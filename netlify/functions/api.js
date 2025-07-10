@@ -11,6 +11,8 @@ const sessionRoutes = require('../../server/routes/sessions');
 const stripeRoutes = require('../../server/routes/stripe');
 const messageRoutes = require('../../server/routes/messages');
 const adminRoutes = require('../../server/routes/admin');
+const productRoutes = require('../../server/routes/products');
+const streamsRoutes = require('../../server/routes/streams');
 
 // Import middleware from server directory
 const { authMiddleware } = require('../../server/middleware/auth');
@@ -41,6 +43,8 @@ app.use('/sessions', sessionRoutes);
 app.use('/stripe', stripeRoutes);
 app.use('/messages', messageRoutes);
 app.use('/admin', adminRoutes);
+app.use('/products', productRoutes);
+app.use('/streams', streamsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

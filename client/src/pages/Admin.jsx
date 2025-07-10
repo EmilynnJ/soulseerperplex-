@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
-import axios from 'axios';
+import { adminAPI } from '../utils/api';
 
 const Admin = () => {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('readers');
@@ -26,24 +26,22 @@ const Admin = () => {
   });
 
   useEffect(() => {
-    if (!isLoaded) return;
-    
-    if (!user || user.publicMetadata?.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
     fetchAdminData();
-  }, [user, isLoaded, navigate]);
+  }, [user, navigate]);
 
   const fetchAdminData = async () => {
     try {
       const [readersRes, sessionsRes] = await Promise.all([
-        axios.get('/api/admin/readers'),
-        axios.get('/api/admin/sessions')
+        adminAPI.getReaders(),
+        adminAPI.getSessions()
       ]);
       
-      setReaders(readersRes.data.readers);
-      setSessions(sessionsRes.data.sessions);
+      setReaders(readersRes.data.readers || readersRes.data);
+      setSessions(sessionsRes.data.sessions || sessionsRes.data);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
     } finally {
@@ -60,7 +58,7 @@ const Admin = () => {
         specialties: newReader.specialties.split(',').map(s => s.trim())
       };
       
-      await axios.post('/api/admin/readers', readerData);
+      await adminAPI.createReader(readerData);
       
       setShowCreateReader(false);
       setNewReader({
@@ -86,7 +84,7 @@ const Admin = () => {
 
   const toggleReaderStatus = async (readerId, currentStatus) => {
     try {
-      await axios.patch(`/api/admin/readers/${readerId}`, {
+      await adminAPI.updateReader(readerId, {
         isActive: !currentStatus
       });
       
@@ -96,7 +94,7 @@ const Admin = () => {
     }
   };
 
-  if (!isLoaded || !user || user.publicMetadata?.role !== 'admin') {
+  if (!user || user.role !== 'admin') {
     return null;
   }
 
@@ -184,10 +182,11 @@ const Admin = () => {
                   <form onSubmit={handleCreateReader} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                        <label htmlFor="email" className="font-playfair text-white text-sm font-medium mb-2 block">
                           Email
                         </label>
                         <input
+                          id="email"
                           type="email"
                           value={newReader.email}
                           onChange={(e) => setNewReader({...newReader, email: e.target.value})}
@@ -196,10 +195,11 @@ const Admin = () => {
                         />
                       </div>
                       <div>
-                        <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                        <label htmlFor="password" className="font-playfair text-white text-sm font-medium mb-2 block">
                           Password
                         </label>
                         <input
+                          id="password"
                           type="password"
                           value={newReader.password}
                           onChange={(e) => setNewReader({...newReader, password: e.target.value})}
@@ -210,10 +210,11 @@ const Admin = () => {
                     </div>
 
                     <div>
-                      <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                      <label htmlFor="name" className="font-playfair text-white text-sm font-medium mb-2 block">
                         Name
                       </label>
                       <input
+                        id="name"
                         type="text"
                         value={newReader.name}
                         onChange={(e) => setNewReader({...newReader, name: e.target.value})}
@@ -223,10 +224,11 @@ const Admin = () => {
                     </div>
 
                     <div>
-                      <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                      <label htmlFor="bio" className="font-playfair text-white text-sm font-medium mb-2 block">
                         Bio
                       </label>
                       <textarea
+                        id="bio"
                         value={newReader.bio}
                         onChange={(e) => setNewReader({...newReader, bio: e.target.value})}
                         className="input-mystical w-full h-24"
@@ -235,10 +237,11 @@ const Admin = () => {
                     </div>
 
                     <div>
-                      <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                      <label htmlFor="specialties" className="font-playfair text-white text-sm font-medium mb-2 block">
                         Specialties (comma-separated)
                       </label>
                       <input
+                        id="specialties"
                         type="text"
                         value={newReader.specialties}
                         onChange={(e) => setNewReader({...newReader, specialties: e.target.value})}
@@ -249,10 +252,11 @@ const Admin = () => {
 
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                        <label htmlFor="videoRate" className="font-playfair text-white text-sm font-medium mb-2 block">
                           Video Rate ($/min)
                         </label>
                         <input
+                          id="videoRate"
                           type="number"
                           step="0.01"
                           value={newReader.rates.video}
@@ -264,10 +268,11 @@ const Admin = () => {
                         />
                       </div>
                       <div>
-                        <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                        <label htmlFor="audioRate" className="font-playfair text-white text-sm font-medium mb-2 block">
                           Audio Rate ($/min)
                         </label>
                         <input
+                          id="audioRate"
                           type="number"
                           step="0.01"
                           value={newReader.rates.audio}
@@ -279,10 +284,11 @@ const Admin = () => {
                         />
                       </div>
                       <div>
-                        <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                        <label htmlFor="chatRate" className="font-playfair text-white text-sm font-medium mb-2 block">
                           Chat Rate ($/min)
                         </label>
                         <input
+                          id="chatRate"
                           type="number"
                           step="0.01"
                           value={newReader.rates.chat}

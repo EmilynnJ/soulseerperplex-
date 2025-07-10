@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { messageAPI } from '../utils/api';
 
 const Messages = () => {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const navigate = useNavigate();
+  
+  console.log('[Messages] User:', user);
+  console.log('[Messages] User role:', user?.role);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -15,18 +18,17 @@ const Messages = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const fetchConversations = useCallback(async () => {
-    if (!isLoaded || !user) return;
-    
     try {
       setLoading(true);
-      const response = await axios.get('/api/messages/conversations');
-      setConversations(response.data.conversations);
+      const response = await messageAPI.getConversations();
+      setConversations(response.data.conversations || []);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
-  }, [isLoaded, user]);
+  }, []);
 
   useEffect(() => {
     fetchConversations();
@@ -34,14 +36,17 @@ const Messages = () => {
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!activeConversationId) return;
+      if (!activeConversationId) {
+        return;
+      }
 
       try {
         setLoadingMessages(true);
-        const response = await axios.get(`/api/messages/conversation/${activeConversationId}`);
-        setMessages(response.data.messages);
+        const response = await messageAPI.getConversationMessages(activeConversationId);
+        setMessages(response.data.messages || []);
       } catch (error) {
         console.error(`Failed to fetch messages for ${activeConversationId}:`, error);
+        setMessages([]);
       } finally {
         setLoadingMessages(false);
       }
@@ -51,15 +56,19 @@ const Messages = () => {
   }, [activeConversationId]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !activeConversationId) return;
+    if (!newMessage.trim() || !activeConversationId) {
+      return;
+    }
 
     const activeConversation = conversations.find(c => c.conversationId === activeConversationId);
-    if (!activeConversation) return;
+    if (!activeConversation) {
+      return;
+    }
 
     const receiverId = activeConversation.otherParticipant.id;
 
     try {
-      const response = await axios.post('/api/messages/send', {
+      const response = await messageAPI.sendMessage({
         receiverId,
         content: newMessage.trim(),
       });
@@ -68,10 +77,10 @@ const Messages = () => {
       setNewMessage('');
 
       // Optimistically update the conversation list
-      setConversations(prev => prev.map(conv =>
-        conv.conversationId === activeConversationId
-          ? { ...conv, lastMessage: { content: newMessage.trim(), createdAt: new Date().toISOString(), isFromMe: true } }
-          : conv
+      setConversations(prev => prev.map(conversation =>
+        conversation.conversationId === activeConversationId
+          ? { ...conversation, lastMessage: { content: newMessage.trim(), createdAt: new Date().toISOString(), isFromMe: true } }
+          : conversation
       ));
 
     } catch (error) {
@@ -95,15 +104,6 @@ const Messages = () => {
       return date.toLocaleDateString();
     }
   };
-
-  if (!isLoaded) {
-    return <LoadingSpinner text="Loading..." />;
-  }
-
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
 
   return (
     <div className="min-h-screen py-8">
@@ -132,43 +132,48 @@ const Messages = () => {
             
             {loading ? <LoadingSpinner text="Loading conversations..." /> : (
               <div className="space-y-3 overflow-y-auto max-h-[600px]">
-                {conversations.map((conv) => (
-                  <div
-                    key={conv.conversationId}
-                    onClick={() => setActiveConversationId(conv.conversationId)}
-                    className={`p-4 rounded-lg cursor-pointer transition-all ${
-                      activeConversationId === conv.conversationId
+                {conversations.map((conversation) => (
+                  <button
+                    key={conversation.conversationId}
+                    onClick={() => setActiveConversationId(conversation.conversationId)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setActiveConversationId(conversation.conversationId);
+                      }
+                    }}
+                    className={`p-4 rounded-lg cursor-pointer transition-all w-full text-left ${
+                      activeConversationId === conversation.conversationId
                         ? 'bg-mystical-pink bg-opacity-20 border border-mystical-pink'
                         : 'bg-gray-800 bg-opacity-50 hover:bg-gray-700'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
                       <div className="relative">
-                        <div className="text-2xl">{conv.otherParticipant.avatar || '👤'}</div>
-                        {conv.otherParticipant.isOnline && (
+                        <div className="text-2xl">{conversation.otherParticipant.avatar || '👤'}</div>
+                        {conversation.otherParticipant.isOnline && (
                           <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800"></div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <h3 className="font-playfair text-white font-semibold truncate">
-                            {conv.otherParticipant.name}
+                            {conversation.otherParticipant.name}
                           </h3>
-                          {conv.unreadCount > 0 && (
+                          {conversation.unreadCount > 0 && (
                             <span className="bg-mystical-pink text-white rounded-full px-2 py-1 text-xs">
-                              {conv.unreadCount}
+                              {conversation.unreadCount}
                             </span>
                           )}
                         </div>
                         <p className="font-playfair text-gray-300 text-sm truncate">
-                          {conv.lastMessage.isFromMe && "You: "}{conv.lastMessage.content}
+                          {conversation.lastMessage.isFromMe && "You: "}{conversation.lastMessage.content}
                         </p>
                         <p className="font-playfair text-gray-400 text-xs">
-                          {formatTime(conv.lastMessage.createdAt)}
+                          {formatTime(conversation.lastMessage.createdAt)}
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -238,7 +243,7 @@ const Messages = () => {
                       type="text"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                       placeholder="Type your message..."
                       className="input-mystical flex-1"
                     />
@@ -252,8 +257,8 @@ const Messages = () => {
                   
                   <div className="mt-3 text-center">
                     <p className="font-playfair text-gray-400 text-sm">
-                      Messages with readers are free to send.
-                      <span className="text-mystical-pink"> Readers may choose to charge for responses.</span>
+                      Messages with readers are free to send.{' '}
+                      <span className="text-mystical-pink">Readers may choose to charge for responses.</span>
                     </p>
                   </div>
                 </div>

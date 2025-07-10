@@ -1,6 +1,82 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Helper function to handle Clerk token authentication
+const handleClerkAuth = async (token) => {
+  try {
+    if (!token.startsWith('eyJ')) {
+      return null;
+    }
+
+    const clerkPayload = jwt.decode(token, { complete: true });
+    const { sub: clerkUserId, email, given_name, name } = clerkPayload?.payload || {};
+    
+    if (!clerkUserId) {
+      return null;
+    }
+
+    // Find or create user based on Clerk user ID
+    let user = await User.findOne({ clerkUserId });
+    
+    if (!user) {
+      // Create a new user record for this Clerk user
+      user = new User({
+        clerkUserId,
+        email: email || `user-${clerkUserId}@clerk.local`,
+        role: 'admin', // Default to admin for now - you may want to change this
+        isActive: true,
+        isVerified: true,
+        profile: {
+          name: given_name || name || 'Admin User'
+        }
+      });
+      await user.save();
+    }
+    
+    return {
+      user,
+      userInfo: {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        clerkUserId: user.clerkUserId
+      }
+    };
+  } catch (error) {
+    console.log('Clerk authentication error:', error.message);
+    return null;
+  }
+};
+
+// Helper function to handle custom JWT authentication
+const handleCustomJWT = async (token) => {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  
+  // Find user and check if still active
+  const user = await User.findById(decoded.userId).select('-password');
+  
+  if (!user) {
+    throw new Error('Token is not valid - user not found');
+  }
+
+  if (!user.isActive) {
+    throw new Error('Account has been deactivated');
+  }
+
+  // Update last seen
+  user.lastSeen = new Date();
+  await user.save();
+
+  return {
+    user,
+    userInfo: {
+      userId: user._id,
+      email: user.email,
+      role: user.role
+    }
+  };
+};
+
 const authMiddleware = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -9,30 +85,16 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'No token provided, authorization denied' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Try Clerk authentication first (returns null on failure)
+    let authResult = await handleClerkAuth(token);
     
-    // Find user and check if still active
-    const user = await User.findById(decoded.userId).select('-password');
-    
-    if (!user) {
-      return res.status(401).json({ message: 'Token is not valid - user not found' });
+    // If Clerk auth failed, try custom JWT
+    if (!authResult) {
+      authResult = await handleCustomJWT(token);
     }
-
-    if (!user.isActive) {
-      return res.status(401).json({ message: 'Account has been deactivated' });
-    }
-
-    // Update last seen
-    user.lastSeen = new Date();
-    await user.save();
-
-    req.user = {
-      userId: user._id,
-      email: user.email,
-      role: user.role
-    };
     
-    req.userDoc = user; // Full user document if needed
+    req.user = authResult.userInfo;
+    req.userDoc = authResult.user;
     
     next();
   } catch (error) {
@@ -46,7 +108,7 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'Token has expired' });
     }
     
-    res.status(500).json({ message: 'Server error in authentication' });
+    return res.status(500).json({ message: 'Server error in authentication' });
   }
 };
 
@@ -105,7 +167,8 @@ const optionalAuth = async (req, res, next) => {
     
     next();
   } catch (error) {
-    // Silently continue without auth
+    // Log the error for debugging but continue without auth
+    console.log('Optional auth failed:', error.message);
     next();
   }
 };

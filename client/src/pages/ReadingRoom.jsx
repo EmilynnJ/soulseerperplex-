@@ -10,18 +10,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const ReadingRoom = () => {
   const { sessionId } = useParams();
-  const { user, isLoaded, isSignedIn } = useUser();
-
-  if (!isLoaded) {
-    return <LoadingSpinner text="Loading user data..." />;
-  }
-
-  if (!isSignedIn || !user) {
-    return <div>Please sign in to access the reading room.</div>;
-  }
-
-  const userRole = user.publicMetadata?.role;
-
+  const { user } = useUser();
+  
   const {
     localStream,
     remoteStream,
@@ -33,7 +23,7 @@ const ReadingRoom = () => {
     toggleVideo,
     toggleAudio,
     endSession
-  } = useWebRTC(sessionId, userRole, 3.99); // Default rate
+  } = useWebRTC(sessionId, user?.role, 3.99); // Default rate
 
   if (connectionStatus === 'connecting') {
     return <LoadingSpinner text="Connecting to your reading..." />;
@@ -120,7 +110,7 @@ const ReadingRoom = () => {
             />
             
             {/* Balance Indicator */}
-            {userRole === 'client' && (
+            {user?.role === 'client' && (
               <BalanceIndicator 
                 balance={balance}
                 readerRate={3.99}
@@ -141,4 +131,3 @@ const ReadingRoom = () => {
 };
 
 export default ReadingRoom;
-

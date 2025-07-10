@@ -1,8 +1,10 @@
 const express = require('express');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../models/User');
 const Session = require('../models/Session');
 const Transaction = require('../models/Transaction');
 const Message = require('../models/Message');
+const Product = require('../models/Product'); // Import Product model
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
 const { validateUserRegistration, validateProfileUpdate } = require('../middleware/validation');
 
@@ -279,15 +281,27 @@ router.get('/sessions', async (req, res) => {
     // Build query
     const query = {};
     
-    if (status) query.status = status;
-    if (sessionType) query.sessionType = sessionType;
-    if (readerId) query.readerId = readerId;
-    if (clientId) query.clientId = clientId;
+    if (status) {
+      query.status = status;
+    }
+    if (sessionType) {
+      query.sessionType = sessionType;
+    }
+    if (readerId) {
+      query.readerId = readerId;
+    }
+    if (clientId) {
+      query.clientId = clientId;
+    }
     
     if (startDate || endDate) {
       query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate);
+      }
     }
 
     const sessions = await Session.find(query)
@@ -335,7 +349,9 @@ router.get('/users', async (req, res) => {
     // Build query
     const query = {};
     
-    if (role) query.role = role;
+    if (role) {
+      query.role = role;
+    }
     
     if (status === 'active') {
       query.isActive = true;
@@ -634,6 +650,68 @@ router.patch('/users/:userId', async (req, res) => {
     console.error('Admin update user error:', error);
     res.status(500).json({ 
       message: 'Failed to update user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Sync Stripe products and prices with local database
+router.post('/products/sync', async (req, res) => {
+  try {
+    // Fetch all products from Stripe
+    const stripeProducts = await stripe.products.list({ limit: 100, active: true });
+    const stripePrices = await stripe.prices.list({ limit: 100, active: true });
+
+    const productsToUpdate = [];
+    const productMap = new Map(); // To store products by ID for efficient lookup
+
+    for (const sp of stripeProducts.data) {
+      const productData = {
+        stripeProductId: sp.id,
+        name: sp.name,
+        description: sp.description,
+        images: sp.images,
+        active: sp.active,
+        metadata: sp.metadata,
+        prices: [],
+      };
+      productsToUpdate.push(productData);
+      productMap.set(sp.id, productData);
+    }
+
+    for (const price of stripePrices.data) {
+      const product = productMap.get(price.product);
+      if (product) {
+        product.prices.push({
+          stripePriceId: price.id,
+          unitAmount: price.unit_amount,
+          currency: price.currency,
+          recurring: price.recurring,
+          type: price.type,
+          active: price.active,
+        });
+      }
+    }
+
+    // Update or insert products in the database
+    for (const productData of productsToUpdate) {
+      await Product.findOneAndUpdate(
+        { stripeProductId: productData.stripeProductId },
+        productData,
+        { upsert: true, new: true, runValidators: true }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Stripe products and prices synced successfully',
+      syncedCount: productsToUpdate.length,
+    });
+
+  } catch (error) {
+    console.error('Admin product sync error:', error);
+    res.status(500).json({
+      message: 'Failed to sync products from Stripe',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

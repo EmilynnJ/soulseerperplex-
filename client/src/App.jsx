@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -14,40 +14,15 @@ import LiveStream from './pages/LiveStream';
 import Shop from './pages/Shop';
 import Community from './pages/Community';
 import Messages from './pages/Messages';
+import Admin from './pages/Admin';
 import Profile from './pages/Profile';
 import HelpCenter from './pages/HelpCenter';
 import Policies from './pages/Policies';
 import Unauthorized from './pages/Unauthorized';
-// Role-specific dashboard pages
-import AdminDashboard from './pages/dashboard/admin';
-import ReaderDashboard from './pages/dashboard/reader';
-import ClientDashboard from './pages/dashboard/client';
-
-// Component to handle role-based redirects after login
-const RoleBasedRedirect = () => {
-  const { user, isLoaded, isSignedIn } = useUser();
-
-  if (!isLoaded) {
-    return <div>Loading...</div>;
-  }
-
-  if (!isSignedIn || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const role = user.publicMetadata?.role;
-
-  if (role === 'admin') {
-    return <Navigate to="/dashboard/admin" replace />;
-  } else if (role === 'reader') {
-    return <Navigate to="/dashboard/reader" replace />;
-  } else if (role === 'client') {
-    return <Navigate to="/dashboard/client" replace />;
-  } else {
-    // If no role is set, default to client dashboard
-    return <Navigate to="/dashboard/client" replace />;
-  }
-};
+import LoadingSpinner from './components/LoadingSpinner';
+// Main Dashboard Router
+import Dashboard from './pages/Dashboard';
+// Individual dashboard components are imported within Dashboard.jsx
 
 function App() {
   return (
@@ -56,72 +31,96 @@ function App() {
         <Header />
         <main className="flex-1">
           <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/readers" element={<ReadersPage />} />
-            <Route path="/livestream" element={<LiveStream />} />
-            <Route path="/live/:streamId?" element={<LiveStream />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/help" element={<HelpCenter />} />
-            <Route path="/policies" element={<Policies />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
+          {/* Public routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/login/*" element={<Login />} />
+          <Route path="/signup/*" element={<Signup />} />
+          <Route path="/readers" element={<ReadersPage />} />
+          <Route path="/livestream" element={<LiveStream />} />
+          <Route path="/live/:streamId?" element={<LiveStream />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/help" element={<HelpCenter />} />
+          <Route path="/policies" element={<Policies />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* Role-based redirect after login */}
-            <Route path="/dashboard" element={<RoleBasedRedirect />} />
+          {/* Protected routes - authenticated users only */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'reader', 'client']}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reading/:sessionId"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'reader', 'client']}>
+                <ReadingRoom />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'reader', 'client']}>
+                <Messages />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'reader', 'client']}>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
-            {/* Protected routes - authenticated users only */}
-            <Route
-              path="/reading/:sessionId"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'reader', 'client']}>
-                  <ReadingRoom />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/messages"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'reader', 'client']}>
-                  <Messages />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'reader', 'client']}>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Role-specific dashboard routes */}
-            <Route
-              path="/dashboard/admin"
-              element={<AdminDashboard />}
-            />
-            <Route
-              path="/dashboard/reader"
-              element={<ReaderDashboard />}
-            />
-            <Route
-              path="/dashboard/client"
-              element={<ClientDashboard />}
-            />
-
-            {/* Admin-only routes */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <Admin />
-                </ProtectedRoute>
-              }
-            />
+          {/* Admin-only routes */}
+          {/* Specific dashboard routes like /dashboard/admin can be removed if
+              all access is intended to go through the main /dashboard route.
+              If direct access to e.g. /dashboard/admin is still desired and should be protected,
+              these routes can remain. For this fix, we assume /dashboard is the primary entry.
+              If these are kept, ensure AdminDashboard, ReaderDashboard, ClientDashboard are imported.
+              However, to ensure our new Dashboard.jsx is the one handling logic, we'll comment them out for now.
+          */}
+          {/*
+          <Route
+            path="/dashboard/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/reader"
+            element={
+              <ProtectedRoute allowedRoles={['reader']}>
+                <ReaderDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/client"
+            element={
+              <ProtectedRoute allowedRoles={['client']}>
+                <ClientDashboard />
+              </ProtectedRoute>
+            }
+          />
+          */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
           </Routes>
         </main>
         <Footer />

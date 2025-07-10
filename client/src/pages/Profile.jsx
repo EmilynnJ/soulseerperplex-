@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 
 const Profile = () => {
   const { user } = useUser();
@@ -16,6 +16,16 @@ const Profile = () => {
   });
 
   const userRole = user?.publicMetadata?.role;
+
+  const getRoleClass = (role) => {
+    if (role === 'admin') {
+      return 'bg-mystical-gold text-black';
+    }
+    if (role === 'reader') {
+      return 'bg-purple-600 text-white';
+    }
+    return 'bg-blue-600 text-white';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,11 +106,7 @@ const Profile = () => {
                   Change Photo
                 </button>
                 <div className="mt-4">
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                    userRole === 'admin' ? 'bg-mystical-gold text-black' :
-                    userRole === 'reader' ? 'bg-purple-600 text-white' :
-                    'bg-blue-600 text-white'
-                  }`}>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getRoleClass(userRole)}`}>
                     {userRole || 'Client'}
                   </span>
                 </div>
@@ -111,10 +117,11 @@ const Profile = () => {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                        <label htmlFor="firstName" className="font-playfair text-white text-sm font-medium mb-2 block">
                           First Name
                         </label>
                         <input
+                          id="firstName"
                           type="text"
                           value={formData.firstName}
                           onChange={(e) => setFormData({...formData, firstName: e.target.value})}
@@ -122,10 +129,11 @@ const Profile = () => {
                         />
                       </div>
                       <div>
-                        <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                        <label htmlFor="lastName" className="font-playfair text-white text-sm font-medium mb-2 block">
                           Last Name
                         </label>
                         <input
+                          id="lastName"
                           type="text"
                           value={formData.lastName}
                           onChange={(e) => setFormData({...formData, lastName: e.target.value})}
@@ -135,10 +143,11 @@ const Profile = () => {
                     </div>
 
                     <div>
-                      <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                      <label htmlFor="birthDate" className="font-playfair text-white text-sm font-medium mb-2 block">
                         Birth Date
                       </label>
                       <input
+                        id="birthDate"
                         type="date"
                         value={formData.birthDate}
                         onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
@@ -147,10 +156,11 @@ const Profile = () => {
                     </div>
 
                     <div>
-                      <label className="font-playfair text-white text-sm font-medium mb-2 block">
+                      <label htmlFor="profileBio" className="font-playfair text-white text-sm font-medium mb-2 block">
                         Bio
                       </label>
                       <textarea
+                        id="profileBio"
                         value={formData.bio}
                         onChange={(e) => setFormData({...formData, bio: e.target.value})}
                         className="input-mystical w-full h-32"
@@ -280,8 +290,8 @@ const Profile = () => {
                     <span className="font-playfair text-white">Show readers within my budget only</span>
                   </label>
                   <div className="flex items-center space-x-4">
-                    <label className="font-playfair text-white">Max rate per minute:</label>
-                    <select className="input-mystical">
+                    <label htmlFor="maxRate" className="font-playfair text-white">Max rate per minute:</label>
+                    <select id="maxRate" className="input-mystical">
                       <option>$2.00</option>
                       <option>$3.00</option>
                       <option>$4.00</option>
@@ -304,7 +314,7 @@ const Profile = () => {
               <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
                 <h3 className="font-playfair text-xl text-white font-semibold mb-4">Password</h3>
                 <p className="font-playfair text-gray-300 mb-4">
-                  Your password is managed by Clerk for enhanced security.
+                  Keep your account secure with a strong password.
                 </p>
                 <button className="btn-mystical">
                   Change Password

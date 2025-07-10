@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ReaderCard from '../components/ReaderCard';
-import axios from 'axios';
+import { clientAPI } from '../utils/api';
 
 const ReadersPage = () => {
   const [readers, setReaders] = useState([]);
@@ -15,10 +15,11 @@ const ReadersPage = () => {
 
   const fetchAllReaders = async () => {
     try {
-      const response = await axios.get('/api/users/readers');
-      setReaders(response.data.readers || response.data);
+      const response = await clientAPI.getReaders();
+      setReaders(response.data.readers || response.data || []);
     } catch (error) {
       console.error('Failed to fetch readers:', error);
+      setReaders([]);
     } finally {
       setLoading(false);
     }
@@ -26,7 +27,7 @@ const ReadersPage = () => {
 
   const handleConnectReader = async (readerId, sessionType) => {
     try {
-      const response = await axios.post('/api/sessions/request', {
+      const response = await clientAPI.requestSession({
         readerId,
         sessionType
       });

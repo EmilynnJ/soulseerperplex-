@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Hero from '../components/Hero';
 import ReaderCard from '../components/ReaderCard';
 import LoadingSpinner from '../components/LoadingSpinner';
-import axios from 'axios';
+import { clientAPI } from '../utils/api';
 
 const Home = () => {
   const [readers, setReaders] = useState([]);
@@ -18,17 +18,20 @@ const Home = () => {
 
   const fetchHomeData = async () => {
     try {
-      const [readersRes, streamsRes, productsRes] = await Promise.all([
-        axios.get('/api/users/readers'),
-        axios.get('/api/streams/live'),
-        axios.get('/api/products')
-      ]);
+      // Fetch readers using the API service
+      const readersRes = await clientAPI.getReaders();
+      setReaders(readersRes.data.readers || readersRes.data || []);
       
-      setReaders(readersRes.data.readers);
-      setLiveStreams(streamsRes.data.streams || streamsRes.data);
-      setProducts(productsRes.data.products || productsRes.data);
+      // For now, set empty arrays for streams and products since these endpoints don't exist
+      // TODO: Implement these endpoints in the server
+      setLiveStreams([]);
+      setProducts([]);
     } catch (error) {
       console.error('Failed to fetch home data:', error);
+      // Set empty arrays on error to prevent UI issues
+      setReaders([]);
+      setLiveStreams([]);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -36,7 +39,7 @@ const Home = () => {
 
   const handleConnectReader = async (readerId, sessionType) => {
     try {
-      const response = await axios.post('/api/sessions/request', {
+      const response = await clientAPI.requestSession({
         readerId,
         sessionType
       });

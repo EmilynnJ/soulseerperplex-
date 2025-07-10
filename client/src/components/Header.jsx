@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { useUser, useAuth, useClerk } from '@clerk/clerk-react';
 
 const Header = () => {
-  const { user, isLoaded } = useUser();
+  const { isLoaded, isSignedIn } = useAuth();
   const { signOut } = useClerk();
+  const { user } = useUser();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -20,8 +21,8 @@ const Header = () => {
     { name: 'Messages', path: '/messages' }
   ];
 
-  const handleLogout = () => {
-    signOut();
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const userRole = user?.publicMetadata?.role;
@@ -56,7 +57,7 @@ const Header = () => {
 
           {/* Auth Buttons / User Menu */}
           <div className="hidden md:flex items-center space-x-4">
-            {isLoaded && user ? (
+            {isLoaded && isSignedIn ? (
               <div className="flex items-center space-x-4">
                 <Link
                   to="/dashboard"
@@ -135,7 +136,7 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            {isLoaded && user ? (
+            {isLoaded && isSignedIn ? (
               <>
                 <Link
                   to="/dashboard"
