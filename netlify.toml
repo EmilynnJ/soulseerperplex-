@@ -3,6 +3,10 @@
   publish = "client/dist"
   functions = "netlify/functions"
 
+[build.environment]
+  # Exclude build output from secrets scanning
+  SECRETS_SCAN_OMIT_PATHS = "client/dist/*,build/*,.next/*,node_modules/*"
+
 [dev]
   command = "npm run dev"
   port = 8888
